@@ -1,0 +1,310 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --- SaaS / Multi-tenancy Core Models ---
+
+enum StorePlan {
+  STANDARD
+  PREMIUM
+}
+
+model Partner {
+  id                 String   @id @default(uuid())
+  name               String
+  phone              String   @unique
+  commission_percent Float    @default(0)
+  total_earnings     Float    @default(0)
+  stores             Store[]
+  users              User[]
+  created_at         DateTime @default(now())
+}
+
+model Store {
+  id             String      @id @default(uuid())
+  name           String
+  owner_name     String?
+  phone          String      @unique // Used for login or identification
+  password       String?     // If we use store phone as login
+  plan           StorePlan   @default(STANDARD)
+  is_active      Boolean     @default(true)
+  partner_id     String?
+  partner        Partner?    @relation(fields: [partner_id], references: [id])
+  subscription_ends_at DateTime?
+  
+  // Online Store & Telegram
+  slug                 String?     @unique
+  telegram_bot_token   String?
+  telegram_bot_username String?
+  
+  // Receipt Settings
+  address              String?
+  receipt_header       String?
+  receipt_footer       String?
+  
+  created_at     DateTime    @default(now())
+  
+  // Relations to Store Data
+  users          User[]
+  products       Product[]
+  categories     Category[]
+  sales          Sale[]
+  customers      Customer[]
+  orders         Order[]
+  debts          Debt[]
+  promotions     Promotion[]
+  bundles        Bundle[]
+  expenses       Expense[]
+  product_history ProductHistory[]
+}
+
+model User {
+  id           String     @id @default(uuid())
+  username     String     
+  password     String
+  role         String     // 'OWNER', 'CASHIER', 'ADMIN', 'PARTNER'
+  store_id     String?    // If null, might be super admin or partner
+  store        Store?     @relation(fields: [store_id], references: [id])
+  partner_id   String?
+  partner      Partner?   @relation(fields: [partner_id], references: [id])
+  created_at   DateTime   @default(now())
+  history_logs ProductHistory[]
+
+  @@unique([store_id, username]) // Username unique within store
+}
+
+// --- Data Models (Multi-tenant) ---
+
+model Category {
+  id         String   @id @default(uuid())
+  store_id   String
+  store      Store    @relation(fields: [store_id], references: [id])
+  name       String
+  created_at DateTime @default(now())
+  products   Product[]
+
+  @@unique([store_id, name])
+}
+
+model Product {
+  id               String    @id @default(uuid())
+  store_id         String
+  store            Store     @relation(fields: [store_id], references: [id])
+  name             String
+  barcode          String?
+  category_id      String?
+  category         Category? @relation(fields: [category_id], references: [id])
+  purchase_price   Float
+  profit_percent   Float
+  selling_price    Float
+  discount_percent Float     @default(0)
+  image_url        String?
+  stock_quantity   Float
+  min_stock_alert  Float
+  unit             String    @default("dona")
+  active           Boolean   @default(true)
+  created_at       DateTime  @default(now())
+  
+  sale_items       SaleItem[]
+  order_items      OrderItem[]
+  promotions       PromotionProduct[]
+  bundle_items     BundleItem[]
+  history          ProductHistory[]
+
+  @@unique([store_id, barcode]) // unique barcode within store
+  @@index([store_id])
+}
+
+model Promotion {
+  id              String              @id @default(uuid())
+  store_id        String
+  store           Store               @relation(fields: [store_id], references: [id])
+  name            String
+  description     String?
+  discount_type   String              // 'percent' | 'fixed'
+  discount_value  Float
+  start_at        DateTime?
+  end_at          DateTime?
+  active          Boolean             @default(true)
+  created_at      DateTime            @default(now())
+  products        PromotionProduct[]
+}
+
+model PromotionProduct {
+  id            String    @id @default(uuid())
+  promotion_id  String
+  product_id    String
+  promotion     Promotion @relation(fields: [promotion_id], references: [id])
+  product       Product   @relation(fields: [product_id], references: [id])
+  override_discount_type  String?
+  override_discount_value Float?
+
+  @@unique([promotion_id, product_id])
+}
+
+model Bundle {
+  id         String       @id @default(uuid())
+  store_id   String
+  store      Store        @relation(fields: [store_id], references: [id])
+  name       String
+  price      Float
+  active     Boolean      @default(true)
+  created_at DateTime     @default(now())
+  items      BundleItem[]
+}
+
+model BundleItem {
+  id         String  @id @default(uuid())
+  bundle_id  String
+  product_id String
+  quantity   Float   @default(1)
+  bundle     Bundle  @relation(fields: [bundle_id], references: [id])
+  product    Product @relation(fields: [product_id], references: [id])
+
+  @@unique([bundle_id, product_id])
+}
+
+model Sale {
+  id           String     @id @default(uuid())
+  store_id     String
+  store        Store      @relation(fields: [store_id], references: [id])
+  sale_number  String
+  total_amount Float
+  payment_type String
+  cashier_name String
+  created_at   DateTime   @default(now())
+  sale_items   SaleItem[]
+  // legacy: debt Debt?
+  debts_links  DebtSale[]
+
+  @@unique([store_id, sale_number])
+  @@index([store_id])
+}
+
+model SaleItem {
+  id         String  @id @default(uuid())
+  sale_id    String
+  sale       Sale    @relation(fields: [sale_id], references: [id])
+  product_id String
+  product    Product @relation(fields: [product_id], references: [id])
+  quantity   Float
+  price      Float
+  total      Float
+}
+
+model Customer {
+  id              String   @id @default(uuid())
+  store_id        String
+  store           Store    @relation(fields: [store_id], references: [id])
+  name            String
+  phone           String
+  created_at      DateTime @default(now())
+  debts           Debt[]
+  orders          Order[]
+
+  @@unique([store_id, phone]) // Unique customer per store
+}
+
+model Debt {
+  id               String         @id @default(uuid())
+  store_id         String
+  store            Store          @relation(fields: [store_id], references: [id])
+  customer_name    String
+  customer_phone   String
+  customer_id      String?
+  customer         Customer?      @relation(fields: [customer_id], references: [id])
+  total_amount     Float
+  paid_amount      Float
+  remaining_amount Float
+  sale_id          String?        // optional link
+  // NO relation to Sale via sale_id? OR ensure uniqueness?
+  // Let's keep it simple: just a ref ID or strict relation. 
+  // If strict relation, needs unique constraint. But a sale can have multiple debts? No.
+  // A debt belongs to a Sale? Usually yes.
+  // Let's drop unique constraint for now or manage carefully.
+  // Actually, let's keep it loosely coupled or manage via DebtSale.
+  status           String
+  created_at       DateTime       @default(now())
+  payments         DebtPayment[]
+  sales_links      DebtSale[]
+}
+
+model DebtPayment {
+  id           String   @id @default(uuid())
+  debt_id      String
+  debt         Debt     @relation(fields: [debt_id], references: [id])
+  amount       Float
+  payment_date DateTime @default(now())
+}
+
+model DebtSale {
+  id       String @id @default(uuid())
+  debt_id  String
+  sale_id  String
+  debt     Debt   @relation(fields: [debt_id], references: [id])
+  sale     Sale   @relation(fields: [sale_id], references: [id])
+
+  @@unique([debt_id, sale_id])
+}
+
+model Order {
+  id               String      @id @default(uuid())
+  store_id         String
+  store            Store       @relation(fields: [store_id], references: [id])
+  customer_name    String
+  customer_phone   String
+  customer_id      String?
+  customer         Customer?   @relation(fields: [customer_id], references: [id])
+  customer_address String?
+  total_amount     Float
+  status           String
+  notes            String?
+  created_at       DateTime    @default(now())
+  order_items      OrderItem[]
+}
+
+model OrderItem {
+  id         String  @id @default(uuid())
+  order_id   String
+  order      Order   @relation(fields: [order_id], references: [id])
+  product_id String
+  product    Product @relation(fields: [product_id], references: [id])
+  quantity   Float
+  price      Float
+  total      Float
+}
+
+model Expense {
+  id          String   @id @default(uuid())
+  store_id    String
+  store       Store    @relation(fields: [store_id], references: [id])
+  name        String
+  amount      Float
+  type        String   // 'rent', 'salary', 'utility', 'other'
+  date        DateTime @default(now())
+  description String?
+  created_at  DateTime @default(now())
+}
+
+model ProductHistory {
+  id          String   @id @default(uuid())
+  store_id    String
+  store       Store    @relation(fields: [store_id], references: [id])
+  product_id  String
+  product     Product  @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  user_id     String?
+  user        User?    @relation(fields: [user_id], references: [id])
+  type        String   // 'sale', 'restock', 'edit', 'delete'
+  quantity    Float    // Change amount (+ or -)
+  stock_after Float
+  note        String?
+  created_at  DateTime @default(now())
+
+  @@index([store_id])
+  @@index([product_id])
+}
