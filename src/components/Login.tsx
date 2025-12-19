@@ -20,6 +20,7 @@ export default function Login({ onLoginSuccess, onBack }: LoginProps) {
   const [password, setPassword] = useState('');
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [isPartner, setIsPartner] = useState(false);
+  const [showAdvancedLogin, setShowAdvancedLogin] = useState(false); // Hidden state
 
   // Register State
   const [regStoreName, setRegStoreName] = useState('');
@@ -87,7 +88,7 @@ export default function Login({ onLoginSuccess, onBack }: LoginProps) {
     <div className="min-h-screen bg-gradient-to-br from-blue-600 via-blue-500 to-green-500 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
-          <div className="bg-gradient-to-r from-blue-600 to-green-600 p-8 text-white text-center">
+          <div className="bg-gradient-to-r from-blue-600 to-green-600 p-8 text-white text-center cursor-pointer select-none" onDoubleClick={() => setShowAdvancedLogin(!showAdvancedLogin)}>
             <div className="flex items-center justify-center gap-3 mb-3">
               <Store size={40} />
               <h1 className="text-3xl font-bold">Dokon Tizimi</h1>
@@ -132,14 +133,19 @@ export default function Login({ onLoginSuccess, onBack }: LoginProps) {
             {isLogin ? (
               <form onSubmit={handleLogin} className="space-y-4">
                 <div className="flex flex-col gap-2 mb-4 bg-gray-50 rounded p-2">
-                  <div className="flex items-center gap-2 text-sm cursor-pointer" onClick={() => { setIsSuperAdmin(!isSuperAdmin); if (!isSuperAdmin) setIsPartner(false); }}>
-                    <input type="checkbox" checked={isSuperAdmin} onChange={e => { setIsSuperAdmin(e.target.checked); if (e.target.checked) setIsPartner(false); }} className="cursor-pointer" />
-                    <label className="font-bold text-gray-600 cursor-pointer select-none">Tizim Administratori (Super Admin)</label>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm cursor-pointer" onClick={() => { setIsPartner(!isPartner); if (!isPartner) setIsSuperAdmin(false); }}>
-                    <input type="checkbox" checked={isPartner} onChange={e => { setIsPartner(e.target.checked); if (e.target.checked) setIsSuperAdmin(false); }} className="cursor-pointer" />
-                    <label className="font-bold text-gray-600 cursor-pointer select-none">Hamkor (Partner)</label>
-                  </div>
+                  {/* Hidden by default, toggled via secret interaction */}
+                  {showAdvancedLogin && (
+                    <div className="animate-fade-in space-y-2">
+                      <div className="flex items-center gap-2 text-sm cursor-pointer" onClick={() => { setIsSuperAdmin(!isSuperAdmin); if (!isSuperAdmin) setIsPartner(false); }}>
+                        <input type="checkbox" checked={isSuperAdmin} onChange={e => { setIsSuperAdmin(e.target.checked); if (e.target.checked) setIsPartner(false); }} className="cursor-pointer" />
+                        <label className="font-bold text-gray-600 cursor-pointer select-none">Tizim Administratori (Super Admin)</label>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm cursor-pointer" onClick={() => { setIsPartner(!isPartner); if (!isPartner) setIsSuperAdmin(false); }}>
+                        <input type="checkbox" checked={isPartner} onChange={e => { setIsPartner(e.target.checked); if (e.target.checked) setIsSuperAdmin(false); }} className="cursor-pointer" />
+                        <label className="font-bold text-gray-600 cursor-pointer select-none">Hamkor (Partner)</label>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {!isSuperAdmin && !isPartner && (
