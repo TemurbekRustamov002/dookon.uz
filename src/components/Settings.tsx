@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
-import { Settings as SettingsIcon, Store, Shield, Lock, Save, User as UserIcon, LogOut } from 'lucide-react';
-import { signOut, getSession } from '../lib/auth';
+import { Settings as SettingsIcon, Store, Shield, Lock, Save, User as UserIcon } from 'lucide-react';
+import { getSession } from '../lib/auth';
 
 export default function Settings() {
     const [activeTab, setActiveTab] = useState<'store' | 'security'>('store');

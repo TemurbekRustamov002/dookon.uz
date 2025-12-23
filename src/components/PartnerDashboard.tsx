@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
-import { Users, Store, TrendingUp, Plus, Shield, Settings, CheckCircle, XCircle, LogOut, X, Pencil } from 'lucide-react';
+import { Store, TrendingUp, Plus, Shield, CheckCircle, XCircle, X, Pencil } from 'lucide-react';
 
 interface Store {
     id: string;

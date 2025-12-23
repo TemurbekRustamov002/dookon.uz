@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
-import { UserPlus, Trash2, Edit2, Check, X, Shield, AlertTriangle } from 'lucide-react';
+import { UserPlus, Trash2, Edit2, Shield, X } from 'lucide-react';
 
 export default function AdminPartners() {
     const [partners, setPartners] = useState<any[]>([]);

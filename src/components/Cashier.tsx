@@ -1,32 +1,34 @@
 import { useEffect, useState } from 'react';
-import { api, Product, Bundle, BundleItem, Promotion, PromotionProduct, Category, Customer, Debt } from '../lib/api';
+import { api, Product, Promotion, PromotionProduct, Category, Customer, Debt } from '../lib/api';
 import {
   ShoppingCart,
   Trash2,
   CreditCard,
   Banknote,
   UserX,
-  Printer,
   Smartphone,
   Search,
-  Menu,
   Plus,
   Minus,
-  LayoutGrid,
-  List,
-  Filter,
   User,
-  CheckCircle
+  CheckCircle,
+  Home,
+  Maximize,
+  Minimize
 } from 'lucide-react';
 import BarcodeScanner from './BarcodeScanner';
 import ToastContainer, { useToast } from './Toast';
 
 interface CartItem {
   product: Product;
-  quantity: number | string; // Allow string to support "1." or empty input
+  quantity: number | string;
 }
 
-export default function Cashier() {
+interface CashierProps {
+  onExit?: () => void;
+}
+
+export default function Cashier({ onExit }: CashierProps) {
   const { toasts, addToast, removeToast } = useToast();
 
   const [products, setProducts] = useState<Product[]>([]);
@@ -43,9 +45,8 @@ export default function Cashier() {
 
   const [cashierName, setCashierName] = useState('');
   const [paymentType, setPaymentType] = useState<'naqd' | 'karta' | 'qarz'>('naqd');
-  const [storeSettings, setStoreSettings] = useState<any>(null); // Store settings for receipt
+  const [storeSettings, setStoreSettings] = useState<any>(null);
 
-  // Debt/Customer State
   const [customerSearch, setCustomerSearch] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [customerName, setCustomerName] = useState('');
@@ -55,22 +56,39 @@ export default function Cashier() {
 
   const [showPayment, setShowPayment] = useState(false);
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
-  const [activeTab, setActiveTab] = useState<'products' | 'cart'>('products'); // For mobile view
+  const [activeTab, setActiveTab] = useState<'products' | 'cart'>('products');
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
     loadData();
     const savedCashier = localStorage.getItem('cashier_name');
     if (savedCashier) setCashierName(savedCashier);
+
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
   useEffect(() => {
     if (barcode.length > 2) searchByBarcode(barcode);
   }, [barcode]);
 
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(e => {
+        console.error("Fullscreen failed", e);
+      });
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+  };
+
   const loadData = async () => {
     try {
-      // Promotions might fail if plan is STANDARD (403 Forbidden)
-      // We handle it gracefully
       let promo: (Promotion & { products: PromotionProduct[] })[] = [];
       try {
         promo = await api.promotions.list();
@@ -83,7 +101,7 @@ export default function Cashier() {
         api.categories.list(),
         api.customers.list(),
         api.debts.list('active'),
-        api.settings.get().catch(() => null) // Handle error/missing settings gracefully
+        api.settings.get().catch(() => null)
       ]);
       setProducts(prod || []);
       setPromotions(promo || []);
@@ -102,7 +120,6 @@ export default function Cashier() {
     if (product) {
       addToCart(product);
       setBarcode('');
-      // Play beep sound?
     } else {
       addToast(`Bunday shtrix-kodli mahsulot topilmadi: ${code} `, 'warning');
     }
@@ -110,12 +127,10 @@ export default function Cashier() {
 
   const getEffectivePrice = (p: Product) => {
     let price = p.selling_price;
-    // Apply discount from product itself
     if (p.discount_percent) {
       price = Math.round(price * (1 - p.discount_percent / 100));
     }
 
-    // Apply active promotions
     const now = new Date();
     const activePromos = promotions.filter(promo => {
       if (!promo.active) return false;
@@ -139,7 +154,6 @@ export default function Cashier() {
   };
 
   const addToCart = (product: Product) => {
-    // Stock Validation
     if (product.stock_quantity <= 0) {
       addToast(`"${product.name}" omborda qolmagan!`, 'error');
       return;
@@ -147,11 +161,9 @@ export default function Cashier() {
 
     const existing = cart.find(item => item.product.id === product.id);
     if (existing) {
-      // Just add 1. If it was string/float, parse it -> add 1 -> store as number
       const currentQty = parseFloat(existing.quantity.toString()) || 0;
       const newQty = currentQty + 1;
 
-      // Use a small epsilon or just direct comparison since JS numbers usually handle simple int/small floats okay
       if (newQty > product.stock_quantity) {
         addToast(`Diqqat! "${product.name}"dan bor - yo'g'i ${product.stock_quantity} dona qolgan.`, 'warning');
         return;
@@ -162,7 +174,6 @@ export default function Cashier() {
       setCart([...cart, { product, quantity: 1 }]);
       addToast(`${product.name} savatga qo'shildi`, 'success');
     }
-    // setActiveTab('cart'); // Optional
   };
 
   const removeFromCart = (id: string) => {
@@ -173,16 +184,10 @@ export default function Cashier() {
     const item = cart.find(i => i.product.id === id);
     if (!item) return;
 
-    // Check checks if qty is a number
     const proposedQty = parseFloat(qty.toString());
-
-    // Only validate if it's a valid positive number
-    // We allow intermediate "1." or "0" for typing, but real check happens on submit or button click usually.
-    // However, to prevent user from typing 1000 when stock is 10, we can check.
 
     if (!isNaN(proposedQty) && proposedQty > item.product.stock_quantity) {
       addToast(`Omborda yetarli emas! Jami: ${item.product.stock_quantity} ${item.product.unit}`, 'error');
-      // Do not update state if exceeds
       return;
     }
 
@@ -208,7 +213,6 @@ export default function Cashier() {
       return;
     }
 
-    // Validate debt customer
     if (paymentType === 'qarz') {
       if (!customerName || !customerPhone) {
         addToast("Qarzga savdo qilish uchun mijoz ismi va telefon raqami shart!", 'error');
@@ -247,7 +251,6 @@ export default function Cashier() {
       setCustomerName(''); setCustomerPhone(''); setCashReceived(''); setSelectedCustomer(null); setCustomerSearch('');
       loadData();
     } catch (e: any) {
-      // Backend returns well-formatted error message now
       const msg = e.response?.data?.message || e.message;
       addToast(`Xatolik: ${msg}`, 'error');
     }
@@ -306,14 +309,12 @@ export default function Cashier() {
 
   const total = calculateTotal();
 
-  // Filter customers for debt search
   const filteredCustomers = customers.filter(c =>
     c.name.toLowerCase().includes(customerSearch.toLowerCase()) ||
     c.phone.includes(customerSearch)
-  ).slice(0, 5); // Limit to 5 results
+  ).slice(0, 5);
 
   const getCustomerDebt = (phone: string) => {
-    // Find debt by customer phone, assuming customer phone is unique identifier for debt merging
     const debt = activeDebts.find(d => d.customer_phone === phone);
     return debt ? debt.remaining_amount : 0;
   };
@@ -322,7 +323,7 @@ export default function Cashier() {
     setSelectedCustomer(c);
     setCustomerName(c.name);
     setCustomerPhone(c.phone);
-    setCustomerSearch(''); // Clear search to hide list
+    setCustomerSearch('');
   };
 
   return (
@@ -334,6 +335,22 @@ export default function Cashier() {
         {/* Top Bar Check */}
         <div className="bg-white border-b shadow-sm z-10 sticky top-0">
           <div className="p-4 flex gap-3 items-center">
+            {onExit && (
+              <button
+                onClick={onExit}
+                className="p-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+                title="Chiqish"
+              >
+                <Home size={20} />
+              </button>
+            )}
+            <button
+              onClick={toggleFullscreen}
+              className="p-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+              title={isFullscreen ? "To'liq ekrandan chiqish" : "To'liq ekran"}
+            >
+              {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
+            </button>
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
               <input

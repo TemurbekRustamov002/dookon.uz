@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
-import { Store, Search, CheckCircle, XCircle, MoreVertical, Shield, Filter, ArrowUpDown } from 'lucide-react';
+import { Store, Search, CheckCircle, XCircle, Filter, ArrowUpDown } from 'lucide-react';
 
 export default function AdminStores() {
     const [stores, setStores] = useState<any[]>([]);

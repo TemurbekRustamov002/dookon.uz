@@ -11,7 +11,6 @@ import {
   CheckCircle,
   X,
   Search,
-  MoreVertical,
   Clock,
   AlertCircle
 } from 'lucide-react';

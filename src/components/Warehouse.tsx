@@ -7,18 +7,13 @@ import {
   Edit2,
   Trash2,
   AlertCircle,
-  Filter,
-  MoreVertical,
   X,
-  CheckCircle,
-  Smartphone,
-  ChevronDown,
-  LayoutGrid,
-  List,
   Scan,
-  History
+  History,
+  Zap
 } from 'lucide-react';
 import BarcodeScanner from './BarcodeScanner';
+import ProductHistory from './ProductHistory';
 
 export default function Warehouse() {
   // --- State ---
@@ -27,14 +22,17 @@ export default function Warehouse() {
 
   const [showForm, setShowForm] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
-  const [scannerMode, setScannerMode] = useState<'search' | 'form'>('search');
+  const [scannerMode, setScannerMode] = useState<'search' | 'form' | 'quick-add'>('search');
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [showLowStock, setShowLowStock] = useState(false);
 
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list'); // mostly for desktop preference, mobile is card list always
+
   const [loading, setLoading] = useState(true);
+
+  // History State
+  const [historyProduct, setHistoryProduct] = useState<Product | null>(null);
 
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [formData, setFormData] = useState({
@@ -171,7 +169,7 @@ export default function Warehouse() {
     }
   };
 
-  const handleEdit = (p: Product) => {
+  const populateForm = (p: Product) => {
     setEditingProduct(p);
     setFormData({
       name: p.name,
@@ -186,7 +184,11 @@ export default function Warehouse() {
       image_url: p.image_url || '',
       unit: p.unit || 'dona',
     });
-    setPricingType('fixed'); // Prefer fixed mode when editing existing
+    setPricingType('fixed');
+  };
+
+  const handleEdit = (p: Product) => {
+    populateForm(p);
     setShowForm(true);
   };
 
@@ -205,8 +207,22 @@ export default function Warehouse() {
   const handleBarcodeDetected = (code: string) => {
     if (scannerMode === 'search') {
       setSearchTerm(code);
-      // Play beep
+    } else if (scannerMode === 'quick-add') {
+      // Logic:
+      // 1. Check if product exists in RAM
+      const existing = products.find(p => p.barcode === code);
+      if (existing) {
+        // Edit existing
+        populateForm(existing);
+        setShowForm(true);
+      } else {
+        // Create new
+        closeForm(); // Clear any partial data
+        setFormData(prev => ({ ...prev, barcode: code, name: '', stock_quantity: '' }));
+        setShowForm(true);
+      }
     } else {
+      // Form mode
       setFormData(prev => ({ ...prev, barcode: code }));
     }
     setShowScanner(false);
@@ -227,11 +243,6 @@ export default function Warehouse() {
     value: products.reduce((sum, p) => sum + (p.purchase_price * p.stock_quantity), 0)
   }), [products]);
 
-  // Placeholder for history view
-  const viewHistory = (p: Product) => {
-    alert("Tez kunda: Mahsulot tarixi (ID: " + p.id + ")");
-  };
-
   // --- Render ---
   return (
     <div className="min-h-screen bg-gray-50/50">
@@ -251,6 +262,14 @@ export default function Warehouse() {
             </div>
 
             <div className="flex items-center gap-2 w-full md:w-auto">
+              <button
+                onClick={() => { setScannerMode('quick-add'); setShowScanner(true); }}
+                className="bg-gray-900 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 shadow-lg hover:bg-gray-800 whitespace-nowrap active:scale-95 transition-transform"
+              >
+                <Zap size={20} className="text-yellow-400 fill-current" />
+                <span className="hidden sm:inline">Tezkor Skaner</span>
+              </button>
+
               <div className="relative flex-1 md:w-64">
                 <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
                 <input
@@ -266,6 +285,7 @@ export default function Warehouse() {
                   <Scan size={20} />
                 </button>
               </div>
+
               <button
                 onClick={() => { closeForm(); setShowForm(true); }}
                 className="bg-indigo-600 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-indigo-200 hover:bg-indigo-700 whitespace-nowrap"
@@ -356,7 +376,7 @@ export default function Warehouse() {
                       </td>
                       <td className="px-6 py-3 text-right">
                         <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => viewHistory(p)} className="p-2 hover:bg-blue-50 text-blue-600 rounded-lg" title="Tarix"><History size={16} /></button>
+                          <button onClick={() => setHistoryProduct(p)} className="p-2 hover:bg-blue-50 text-blue-600 rounded-lg" title="Tarix"><History size={16} /></button>
                           <button onClick={() => handleEdit(p)} className="p-2 hover:bg-indigo-50 text-indigo-600 rounded-lg"><Edit2 size={16} /></button>
                           <button onClick={() => handleDelete(p.id)} className="p-2 hover:bg-red-50 text-red-600 rounded-lg"><Trash2 size={16} /></button>
                         </div>
@@ -390,8 +410,10 @@ export default function Warehouse() {
                       </div>
                     </div>
                     <div className="flex gap-2 text-sm z-10">
-                      <button onClick={(e) => { e.stopPropagation(); viewHistory(p); }} className="p-1 text-blue-600 bg-blue-50 rounded"><History size={16} /></button>
-                      <div className="text-right">
+                      <button onClick={(e) => { e.stopPropagation(); setHistoryProduct(p); }} className="p-1.5 text-blue-600 bg-blue-50 rounded-lg font-medium flex items-center gap-1">
+                        <History size={14} /> Tarix
+                      </button>
+                      <div className="text-right flex-1">
                         <div className="text-gray-400 text-xs">Foyda:</div>
                         <div className="font-medium text-green-600">{(p.selling_price - p.purchase_price).toLocaleString()}</div>
                       </div>
@@ -410,7 +432,7 @@ export default function Warehouse() {
           <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
             <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
               <div className="p-5 border-b flex justify-between items-center bg-gray-50">
-                <h2 className="text-xl font-bold text-gray-900">{editingProduct ? "Tahrirlash" : "Yangi Mahsulot"}</h2>
+                <h2 className="text-xl font-bold text-gray-900">{editingProduct ? "Tahrirlash / Kirim" : "Yangi Mahsulot"}</h2>
                 <button onClick={closeForm} className="p-2 hover:bg-gray-200 rounded-full"><X size={20} /></button>
               </div>
 
@@ -558,7 +580,10 @@ export default function Warehouse() {
                       </select>
                     </div>
                     <div>
-                      <label className="text-sm font-semibold text-gray-700">Qoldiq</label>
+                      <label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
+                        Qoldiq
+                        {editingProduct && <span className="text-[10px] text-gray-400 font-normal">(Yangi qiymatni kiriting)</span>}
+                      </label>
                       <input type="number" step="0.001" required className="w-full border rounded-lg p-2.5 mt-1" placeholder="0"
                         value={formData.stock_quantity} onChange={e => setFormData({ ...formData, stock_quantity: e.target.value })}
                       />
@@ -583,6 +608,15 @@ export default function Warehouse() {
           </div>
         )
       }
+
+      {/* History Modal */}
+      {historyProduct && (
+        <ProductHistory
+          productId={historyProduct.id}
+          productName={historyProduct.name}
+          onClose={() => setHistoryProduct(null)}
+        />
+      )}
 
       {/* Barcode Scanner Modal */}
       <BarcodeScanner

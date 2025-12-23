@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { api, Product, Category, Promotion, Bundle, BundleItem, PromotionProduct } from '../lib/api';
+import SEO from './SEO';
 import {
   ShoppingCart,
   Plus,
@@ -13,7 +14,6 @@ import {
   Zap,
   Gift,
   Clock,
-  Menu,
   X,
   ChevronRight,
   ShoppingBag
@@ -455,6 +455,19 @@ export default function CustomerShop({ slug }: CustomerShopProps) {
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-800">
+      <SEO
+        title={storeInfo?.name || "Market"}
+        description={storeInfo ? `${storeInfo.name} onlayn do'koni. Barcha mahsulotlar eng arzon narxda.` : "Onlayn Do'kon"}
+        storeName={storeInfo?.name}
+        url={window.location.href}
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "Store",
+          "name": storeInfo?.name || "Dookon Store",
+          "description": "Onlayn do'kon",
+          "image": "https://dookon.uz/og-image.jpg"
+        }}
+      />
 
       {/* Sticky Modern Header */}
       <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-100 shadow-sm">
@@ -585,7 +598,7 @@ export default function CustomerShop({ slug }: CustomerShopProps) {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {activeBundles.map(bundle => {
-                const { realValue, savings, savingsPercent } = getBundleInfo(bundle);
+                const { realValue, savingsPercent } = getBundleInfo(bundle);
 
                 return (
                   <div key={bundle.id} className="border border-gray-100 rounded-2xl p-5 hover:shadow-xl transition-shadow bg-gradient-to-b from-white to-gray-50/50 flex flex-col">
@@ -798,9 +811,11 @@ export default function CustomerShop({ slug }: CustomerShopProps) {
                           <div className="flex items-center gap-3 bg-gray-100 rounded-lg p-1">
                             <button onClick={() => updateQuantity(item.id, -1)} className="w-6 h-6 flex items-center justify-center hover:bg-white rounded-md transition-colors"><Minus size={14} /></button>
                             <span className="text-sm font-bold w-4 text-center">{item.quantity}</span>
-                            <button onClick={() => addToCart(item.data, item.type)} className="w-6 h-6 flex items-center justify-center hover:bg-white rounded-md transition-colors"><Plus size={14} /></button>
+                            <button onClick={() => updateQuantity(item.id, 1)} className="w-6 h-6 flex items-center justify-center hover:bg-white rounded-md transition-colors"><Plus size={14} /></button>
                           </div>
-                          <div className="font-bold text-indigo-700">{(price * item.quantity).toLocaleString()}</div>
+                          <div className="text-right">
+                            <div className="font-bold text-gray-900">{price.toLocaleString()}</div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -809,74 +824,81 @@ export default function CustomerShop({ slug }: CustomerShopProps) {
               )}
             </div>
 
-            {cart.length > 0 && (
-              <div className="p-6 bg-gray-50 border-t space-y-4">
-                <div className="flex justify-between items-end">
-                  <span className="text-gray-500 font-medium">Jami summa:</span>
-                  <span className="text-3xl font-black text-gray-900">{calculateTotal().toLocaleString()} <span className="text-sm text-gray-400 font-normal">so'm</span></span>
-                </div>
-                <button
-                  onClick={() => { setShowCart(false); setShowCheckout(true); }}
-                  className="w-full py-4 bg-gray-900 text-white rounded-2xl font-bold text-lg hover:bg-gray-800 transition-transform active:scale-[0.98] shadow-xl shadow-gray-200 flex items-center justify-center gap-2"
-                >
-                  Rasmiylashtirish <ChevronRight size={20} />
-                </button>
+            <div className="p-5 border-t bg-gray-50 space-y-4">
+              <div className="flex justify-between items-center text-lg font-bold">
+                <span>Jami:</span>
+                <span>{totalAmount.toLocaleString()} so'm</span>
               </div>
-            )}
+              <button
+                onClick={() => {
+                  setShowCart(false);
+                  setShowCheckout(true);
+                }}
+                disabled={cart.length === 0}
+                className="w-full py-4 bg-indigo-600 text-white font-bold rounded-xl shadow-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98]"
+              >
+                Rasmiylashtirish
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* --- CHECKOUT MODAL --- */}
+      {/* --- CHECKOUT DRAWER --- */}
       {showCheckout && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowCheckout(false)}></div>
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg relative z-10 overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="p-6 bg-gradient-to-r from-indigo-600 to-purple-700 text-white">
-              <h2 className="text-2xl font-bold flex items-center gap-2"><CheckCircle className="fill-white text-indigo-600" /> Buyurtma berish</h2>
-              <p className="text-white/80 text-sm mt-1">Ma'lumotlaringizni kiriting va biz siz bilan bog'lanamiz.</p>
+        <div className="fixed inset-0 z-[60]">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity" onClick={() => setShowCheckout(false)}></div>
+          <div className="absolute top-0 right-0 h-full w-full max-w-md bg-white shadow-2xl flex flex-col animate-slide-in-right">
+            <div className="p-5 border-b flex justify-between items-center bg-gray-50/50">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <CheckCircle className="text-green-600" /> Rasmiylashtirish
+              </h2>
+              <button onClick={() => setShowCheckout(false)} className="p-2 hover:bg-gray-100 rounded-full text-gray-500"><X size={24} /></button>
             </div>
 
-            <div className="p-6 overflow-y-auto">
-              <form id="checkout-form" onSubmit={handleSubmitOrder} className="space-y-4">
-                <div className="space-y-1">
-                  <label className="text-sm font-bold text-gray-700 ml-1">Ismingiz</label>
+            <div className="flex-1 overflow-y-auto p-5">
+              <form id="checkout-form" onSubmit={handleSubmitOrder} className="space-y-6">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Ismingiz *</label>
                   <input
                     required
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
                     placeholder="Ismingizni kiriting"
                     value={customerInfo.name}
                     onChange={e => setCustomerInfo({ ...customerInfo, name: e.target.value })}
                   />
                 </div>
-                <div className="space-y-1">
-                  <label className="text-sm font-bold text-gray-700 ml-1">Telefon raqam</label>
-                  <input
-                    required
-                    type="tel"
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                    placeholder="+998 90 123 45 67"
-                    value={customerInfo.phone}
-                    onChange={e => setCustomerInfo({ ...customerInfo, phone: e.target.value })}
-                  />
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Telefon raqamingiz *</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-3.5 text-gray-400 font-bold">+998</span>
+                    <input
+                      required
+                      type="tel"
+                      className="w-full p-3 pl-14 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-mono"
+                      placeholder="90 123 45 67"
+                      value={customerInfo.phone}
+                      onChange={e => setCustomerInfo({ ...customerInfo, phone: e.target.value })}
+                    />
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-sm font-bold text-gray-700 ml-1">Manzil</label>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Manzil (ixtiyoriy)</label>
                   <textarea
-                    required
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                    placeholder="Yetkazib berish manzili"
-                    rows={3}
+                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all resize-none h-24"
+                    placeholder="Yetkazib berish manzili..."
                     value={customerInfo.address}
                     onChange={e => setCustomerInfo({ ...customerInfo, address: e.target.value })}
                   />
                 </div>
-                <div className="space-y-1">
-                  <label className="text-sm font-bold text-gray-700 ml-1">Izoh (ixtiyoriy)</label>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Izoh (ixtiyoriy)</label>
                   <textarea
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                    placeholder="Qo'shimcha gaplaringiz bo'lsa..."
-                    rows={2}
+                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all resize-none h-20"
+                    placeholder="Qo'shimcha izohlar..."
                     value={customerInfo.notes}
                     onChange={e => setCustomerInfo({ ...customerInfo, notes: e.target.value })}
                   />
@@ -884,27 +906,43 @@ export default function CustomerShop({ slug }: CustomerShopProps) {
               </form>
             </div>
 
-            <div className="p-6 border-t bg-gray-50 flex gap-4">
-              <button onClick={() => setShowCheckout(false)} className="px-6 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-200 transition-colors">Bekor qilish</button>
-              <button form="checkout-form" type="submit" className="flex-1 bg-indigo-600 text-white rounded-xl py-3 font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all flex items-center justify-center gap-2">
-                <Send size={18} /> Yuborish
+            <div className="p-5 border-t bg-gray-50 space-y-3">
+              <div className="flex justify-between items-center text-sm text-gray-500">
+                <span>Mahsulotlar:</span>
+                <span>{cart.reduce((s, i) => s + i.quantity, 0)} ta</span>
+              </div>
+              <div className="flex justify-between items-center text-xl font-black text-gray-900">
+                <span>Jami to'lov:</span>
+                <span>{totalAmount.toLocaleString()} so'm</span>
+              </div>
+              <button
+                type="submit"
+                form="checkout-form"
+                className="w-full py-4 bg-green-600 text-white font-bold rounded-xl shadow-lg hover:bg-green-700 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+              >
+                <Send size={20} />
+                Buyurtma berish
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* --- SUCCESS NOTIFICATION --- */}
+      {/* SUCCESS MODAL */}
       {orderSuccess && (
-        <div className="fixed top-24 right-5 z-[80] animate-bounce-in">
-          <div className="bg-green-500 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4">
-            <div className="bg-white/20 p-2 rounded-full">
-              <CheckCircle size={32} />
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl transform transition-all scale-100 animate-bounce-in">
+            <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
+              <CheckCircle size={40} />
             </div>
-            <div>
-              <h4 className="font-bold text-lg">Buyurtma qabul qilindi!</h4>
-              <p className="opacity-90 text-sm">Operatorlarimiz tez orada aloqaga chiqishadi.</p>
-            </div>
+            <h2 className="text-2xl font-black text-gray-900 mb-2">Buyurtma Qabul Qilindi!</h2>
+            <p className="text-gray-500 mb-6">Sizning buyurtmangiz muvaffaqiyatli yuborildi. Tez orada operatorlarimiz siz bilan bog'lanishadi.</p>
+            <button
+              onClick={() => setOrderSuccess(false)}
+              className="w-full py-3 bg-gray-900 text-white font-bold rounded-xl hover:bg-gray-800 transition-colors"
+            >
+              Yopish
+            </button>
           </div>
         </div>
       )}

@@ -1,22 +1,17 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+import SEO from './SEO';
 import {
     Smartphone,
     Store,
     CheckCircle,
     ArrowRight,
-    Package,
-    ShoppingCart,
     UserX,
-    ClipboardList,
     Phone,
     BarChart3,
-    Users,
     ShieldCheck,
     Zap,
-    LayoutGrid,
     Menu,
-    X,
-    ChevronRight
+    X
 } from 'lucide-react';
 
 interface LandingPageProps {
@@ -28,6 +23,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
 
     return (
         <div className="min-h-screen bg-gray-50 text-gray-900 font-sans selection:bg-indigo-100 selection:text-indigo-900 overflow-x-hidden">
+            <SEO />
 
             {/* --- TOP HEADER --- */}
             <nav className="fixed top-0 left-0 right-0 z-[100] bg-white border-b border-gray-200">
@@ -95,9 +91,9 @@ export default function LandingPage({ onStart }: LandingPageProps) {
                                 <span className="text-[10px] font-black uppercase tracking-[0.2em]">Apparatsiz Savdo</span>
                             </div>
                             <h1 className="text-4xl md:text-6xl lg:text-7xl font-black leading-[1.1] mb-8 tracking-tight text-gray-900">
-                                Savdoni Faqat <br />
-                                <span className="text-indigo-600">Smartfonda</span> <br />
-                                Boshqaring.
+                                <span className="text-indigo-600">Dookon</span> — Eng Qulay <br />
+                                Kassa va Ombor <br />
+                                Tizimi.
                             </h1>
                             <p className="text-lg md:text-xl text-gray-500 mb-10 max-w-2xl mx-auto lg:mx-0 leading-relaxed font-medium">
                                 Kompyuter, shtrix-kod skaner va boshqa apparatlar shart emas. Do'koningizni hamyoningizda olib yuring. Istalgan joyda, istalgan vaqtda sotuv qiling.
@@ -349,7 +345,6 @@ export default function LandingPage({ onStart }: LandingPageProps) {
         }
         .animate-slide-down { animation: slide-down 0.3s ease-out; }
       `}</style>
-
         </div>
     );
 }

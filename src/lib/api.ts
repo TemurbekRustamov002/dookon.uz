@@ -1,4 +1,6 @@
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
+// Automatically determine backend URL based on current host if not specified in env
+const isDev = import.meta.env.DEV;
+const API_URL = import.meta.env.VITE_API_URL || (isDev ? `http://${window.location.hostname}:4000` : "https://api.dookon.uz");
 
 /** Agar backend global prefix ishlatsa: app.setGlobalPrefix('api')
  *  unda API_PREFIX = '/api' bo‘lib qoladi.
@@ -192,7 +194,7 @@ async function http<T>(
   options?: { method?: HttpMethod; body?: any; headers?: Record<string, string> }
 ): Promise<T> {
   const url = joinUrl(API_URL, `${API_PREFIX}${path}`);
-  const token = localStorage.getItem('token');
+
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",

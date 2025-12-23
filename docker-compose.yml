@@ -1,20 +1,58 @@
 version: '3.8'
+
 services:
-  db:
-    image: postgres:15
-    container_name: shop_postgres
+  postgres:
+    image: postgres:15-alpine
+    container_name: dookon-postgres
+    restart: always
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: shop
-    ports:
-      - "5432:5432"
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-dookon}
     volumes:
-      - db_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    # Postgres port is NOT exposed to host, only internal network as requested
+
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: dookon-backend
+    restart: always
+    ports:
+      - "2001:2001"
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-dookon}
+      PORT: 2001
+      CORS_ORIGIN: https://dookon.uz,https://www.dookon.uz
+      JWT_SECRET: ${JWT_SECRET:-changeme_please_change_this_in_prod}
+    depends_on:
+      - postgres
+    networks:
+      - app-network
+
+  frontend:
+    build:
+      context: ./src
+      dockerfile: Dockerfile
+    container_name: dookon-frontend
+    restart: always
+    ports:
+      - "2000:80"
+    environment:
+      - VITE_API_URL=https://api.dookon.uz
+    tags:
+       - "dookon-frontend:latest"
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
 volumes:
-  db_data:
+  postgres_data:

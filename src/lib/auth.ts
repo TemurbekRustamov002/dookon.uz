@@ -28,7 +28,7 @@ export function getSession(): Session | null {
   }
 }
 
-export function signIn(email: string, password: string): Session | null {
+export function signIn(_email: string, _password: string): Session | null {
   // Deprecated: Login is now handled via API in Login.tsx
   return null;
 }

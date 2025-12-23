@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
-import { Store, Users, DollarSign, TrendingUp, ShoppingBag, Shield } from 'lucide-react';
+import { Store, Users, DollarSign, Shield } from 'lucide-react';
 
 export default function SuperAdminDashboard() {
     const [stats, setStats] = useState<any>(null);

@@ -6,7 +6,7 @@ import ToastContainer, { useToast } from './Toast';
 export default function Users() {
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
+    const [, setError] = useState('');
     const { toasts, addToast, removeToast } = useToast();
 
     // Modal State

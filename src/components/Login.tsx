@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { api } from '../lib/api';
-import { Store, LogIn, Phone, User, Lock, Loader, Building2 } from 'lucide-react';
+import { Store, Phone, User, Lock, Loader, Building2 } from 'lucide-react';
 import { saveSession } from '../lib/auth';
 
 interface LoginProps {

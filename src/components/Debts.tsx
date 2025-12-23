@@ -1,15 +1,11 @@
 import { useEffect, useState } from 'react';
-import { api, Debt, DebtPayment } from '../lib/api';
+import { api, Debt } from '../lib/api';
 import {
   UserX,
-  DollarSign,
-  Clock,
   CheckCircle,
-  Plus,
   Search,
   History,
   CreditCard,
-  ChevronRight,
   TrendingDown,
   TrendingUp,
   X,

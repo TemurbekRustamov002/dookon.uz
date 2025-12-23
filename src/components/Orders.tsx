@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api, Order, OrderItem } from '../lib/api';
+import { api, Order } from '../lib/api';
 import {
   Package,
   Clock,
@@ -8,12 +8,10 @@ import {
   Truck,
   Search,
   ChevronRight,
-  Eye,
   Calendar,
   MapPin,
   Phone,
   User,
-  MoreVertical,
   X
 } from 'lucide-react';
 

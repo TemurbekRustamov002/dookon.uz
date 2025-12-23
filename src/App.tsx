@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getSession, signOut, Session } from './lib/auth';
+import { getSession, signOut } from './lib/auth';
 import { api } from './lib/api';
 import PartnerDashboard from './components/PartnerDashboard';
 import Dashboard from './components/Dashboard';
@@ -20,11 +20,17 @@ import Settings from './components/Settings';
 import Expenses from './components/Expenses';
 import { LayoutDashboard, Package, ShoppingCart, UserX, ClipboardList, Store, Menu, X, LogOut, Loader, Tags, Boxes, Shield, Users as UsersIcon, Settings as SettingsIcon, TrendingDown } from 'lucide-react';
 
+import RemoteScanner from './components/RemoteScanner';
+
 type Page = 'dashboard' | 'warehouse' | 'cashier' | 'debts' | 'orders' | 'customer' | 'promotions' | 'bundles' | 'super_dashboard' | 'admin_stores' | 'users' | 'partner_dashboard' | 'admin_partners' | 'settings' | 'expenses';
 
 type UserRole = 'admin' | 'kassir' | 'omborchi' | 'customer' | 'OWNER' | 'ADMIN' | 'CASHIER' | 'SUPER_ADMIN' | 'WAREHOUSE' | 'DELIVERY' | 'PARTNER';
 
 function App() {
+  if (window.location.pathname === '/remote-scan') {
+    return <RemoteScanner />;
+  }
+
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -149,7 +155,7 @@ function App() {
       // Store
       case 'dashboard': return <Dashboard onNavigate={setCurrentPage} />;
       case 'warehouse': return <Warehouse />;
-      case 'cashier': return <Cashier />;
+      case 'cashier': return <Cashier onExit={() => setCurrentPage('dashboard')} />;
       case 'debts': return <Debts />;
       case 'orders': return <Orders />;
       case 'promotions': return <Promotions />;
@@ -211,71 +217,75 @@ function App() {
     );
   }
 
+  const isCashierMode = currentPage === 'cashier';
+
   return (
     <div className="flex h-screen bg-gray-100">
-      <aside
-        className={`fixed md:static inset-y-0 left-0 z-50 w-72 bg-gradient-to-b from-gray-900 to-gray-800 text-white transform transition-transform duration-300 ease-in-out flex flex-col ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
-          }`}
-      >
-        <div className="flex items-center justify-between p-6 border-b border-gray-700 shrink-0">
-          <div>
-            <h1 className="text-2xl font-bold">Dokon Tizimi</h1>
-            <p className="text-gray-400 text-sm">
-              {userRole === 'SUPER_ADMIN' ? 'Admin Panel' : 'Boshqaruv paneli'}
-            </p>
+      {!isCashierMode && (
+        <aside
+          className={`fixed md:static inset-y-0 left-0 z-50 w-72 bg-gradient-to-b from-gray-900 to-gray-800 text-white transform transition-transform duration-300 ease-in-out flex flex-col ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+            }`}
+        >
+          <div className="flex items-center justify-between p-6 border-b border-gray-700 shrink-0">
+            <div>
+              <h1 className="text-2xl font-bold">Dokon Tizimi</h1>
+              <p className="text-gray-400 text-sm">
+                {userRole === 'SUPER_ADMIN' ? 'Admin Panel' : 'Boshqaruv paneli'}
+              </p>
+            </div>
+            <button
+              onClick={() => setIsSidebarOpen(false)}
+              className="md:hidden text-white hover:text-gray-300"
+            >
+              <X size={24} />
+            </button>
           </div>
-          <button
-            onClick={() => setIsSidebarOpen(false)}
-            className="md:hidden text-white hover:text-gray-300"
-          >
-            <X size={24} />
-          </button>
-        </div>
 
-        <nav className="flex-1 overflow-y-auto p-4 space-y-2 hide-scrollbar">
-          {visibleMenuItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = currentPage === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => {
-                  setCurrentPage(item.id);
-                  setIsSidebarOpen(false);
-                }}
-                className={`w-full flex items-center gap-4 px-4 py-3 rounded-lg transition-all ${isActive
-                  ? 'bg-white text-gray-900 shadow-lg'
-                  : 'text-gray-300 hover:bg-gray-700 hover:text-white'
-                  }`}
-              >
-                <Icon size={24} className={isActive ? item.color : ''} />
-                <span className="font-semibold">{item.name}</span>
-              </button>
-            );
-          })}
-        </nav>
+          <nav className="flex-1 overflow-y-auto p-4 space-y-2 hide-scrollbar">
+            {visibleMenuItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = currentPage === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    setCurrentPage(item.id);
+                    setIsSidebarOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-4 px-4 py-3 rounded-lg transition-all ${isActive
+                    ? 'bg-white text-gray-900 shadow-lg'
+                    : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                    }`}
+                >
+                  <Icon size={24} className={isActive ? item.color : ''} />
+                  <span className="font-semibold">{item.name}</span>
+                </button>
+              );
+            })}
+          </nav>
 
-        <div className="p-4 border-t border-gray-700 space-y-3 shrink-0 bg-gray-900/50">
-          <div className="bg-gray-800 rounded-lg p-3">
-            <p className="text-sm text-gray-300 font-semibold">{userName}</p>
-            <p className="text-xs text-gray-400 mt-1">
-              {userRole === 'SUPER_ADMIN' && 'Super Admin'}
-              {(userRole === 'admin' || userRole === 'ADMIN') && 'Admin'}
-              {userRole === 'OWNER' && 'Dokon Egasi'}
-              {(userRole === 'kassir' || userRole === 'CASHIER') && 'Kassir'}
-              {(userRole === 'omborchi' || userRole === 'WAREHOUSE') && 'Omborchi'}
-              {userRole === 'DELIVERY' && 'Yetkazib Beruvchi'}
-            </p>
+          <div className="p-4 border-t border-gray-700 space-y-3 shrink-0 bg-gray-900/50">
+            <div className="bg-gray-800 rounded-lg p-3">
+              <p className="text-sm text-gray-300 font-semibold">{userName}</p>
+              <p className="text-xs text-gray-400 mt-1">
+                {userRole === 'SUPER_ADMIN' && 'Super Admin'}
+                {(userRole === 'admin' || userRole === 'ADMIN') && 'Admin'}
+                {userRole === 'OWNER' && 'Dokon Egasi'}
+                {(userRole === 'kassir' || userRole === 'CASHIER') && 'Kassir'}
+                {(userRole === 'omborchi' || userRole === 'WAREHOUSE') && 'Omborchi'}
+                {userRole === 'DELIVERY' && 'Yetkazib Beruvchi'}
+              </p>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg transition-all font-semibold flex items-center justify-center gap-2"
+            >
+              <LogOut size={18} />
+              Chiqish
+            </button>
           </div>
-          <button
-            onClick={handleLogout}
-            className="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg transition-all font-semibold flex items-center justify-center gap-2"
-          >
-            <LogOut size={18} />
-            Chiqish
-          </button>
-        </div>
-      </aside>
+        </aside>
+      )}
 
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="bg-white shadow-md z-40 md:hidden">

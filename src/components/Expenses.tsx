@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../lib/api';
-import { Plus, Trash2, Calendar, DollarSign, TrendingDown } from 'lucide-react';
+import { Plus, Trash2, Calendar, TrendingDown } from 'lucide-react';
 
 export default function Expenses() {
     const [expenses, setExpenses] = useState<any[]>([]);
